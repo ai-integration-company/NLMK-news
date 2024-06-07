@@ -1,0 +1,13 @@
+fastapi
+pydantic
+uvicorn
+python-dotenv
+langchain_core
+langchain_community
+yandex_chain
+chromadb
+langchain-chroma
+pymupdf
+ocrmypdf
+spacy==3.7.0
+

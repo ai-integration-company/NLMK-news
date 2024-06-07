@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+
+  telegram-bot:
+    build: ./src/telegram-bot
+    container_name: telegram-bot
+    restart: unless-stopped
+    networks:
+      - ai-product-news-network
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    volumes:
+      - index_data:/chroma/.chroma/index
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ALLOW_RESET=TRUE
+    ports:
+      - 8000:8000
+    networks:
+      - ai-product-news-network
+
+  ml:
+    build: ./src/ml
+    container_name: ml
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    networks:
+      - ai-product-news-network
+    depends_on:
+      - chroma
+
+volumes:
+  index_data:
+
+
+networks:
+  ai-product-news-network:
+    driver: bridge
