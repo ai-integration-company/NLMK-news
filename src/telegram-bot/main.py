@@ -3,10 +3,11 @@ import logging
 
 import requests
 from dotenv import load_dotenv
-from telebot import TeleBot, custom_filters
+from telebot import TeleBot, custom_filters, types
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telebot.handler_backends import State, StatesGroup
 from telebot.storage import StateMemoryStorage
+import math
 
 import db
 
@@ -52,6 +53,37 @@ def gen_markup():
     markup.add(KeyboardButton("Получить недельные новости"))
     markup.add(KeyboardButton("Дайджест по добавленной информации"))
     return markup
+
+
+TAGS_PER_PAGE = 5
+
+
+def gen_tag_markup(tags, page=0):
+    markup = types.InlineKeyboardMarkup()
+    start = page * TAGS_PER_PAGE
+    end = start + TAGS_PER_PAGE
+    for tag in list(tags)[start:end]:
+        markup.add(types.InlineKeyboardButton(tag, callback_data=f"delete_{tag}"))
+
+    total_pages = math.ceil(len(tags) / TAGS_PER_PAGE)
+    pagination_buttons = []
+    if page > 0:
+        pagination_buttons.append(types.InlineKeyboardButton("⬅️", callback_data=f"page_{page-1}"))
+    if page < total_pages - 1:
+        pagination_buttons.append(types.InlineKeyboardButton("➡️", callback_data=f"page_{page+1}"))
+
+    if pagination_buttons:
+        markup.row(*pagination_buttons)
+
+    return markup
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
+def page_handler(call):
+    page = int(call.data.split("_")[1])
+    tags = db.get_user_tags(call.from_user.id)
+    bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id,
+                                  reply_markup=gen_tag_markup(tags, page))
 
 
 def handle_keyboard_callbacks(message) -> bool:
@@ -102,7 +134,7 @@ def handle_adding_tags(message):
     bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
 
 
-@bot.callback_query_handler(state=MyStates.deleting_tags, func=lambda call: call.data.startswith('delete_'))
+@bot.callback_query_handler(func=lambda call: call.data.startswith('delete_'))
 def callback_delete_tag(call):
     logger.info("121212")
     tag_to_delete = call.data.split('_')[1]
@@ -116,13 +148,6 @@ def callback_delete_tag(call):
                                       reply_markup=gen_tag_markup(user_tags))
     else:
         bot.answer_callback_query(call.id, f"Тег '{tag_to_delete}' не найден.")
-
-
-def gen_tag_markup(tags):
-    markup = InlineKeyboardMarkup()
-    for tag in tags:
-        markup.add(InlineKeyboardButton(tag, callback_data=f"delete_{tag}"))
-    return markup
 
 
 def handle_getting_weekly_news(message):
