@@ -1,0 +1,4 @@
+python-dateutil
+feedparser
+bs4
+requests
