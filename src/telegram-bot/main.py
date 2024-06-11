@@ -136,9 +136,7 @@ def handle_adding_tags(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('delete_'))
 def callback_delete_tag(call):
-    logger.info("121212")
     tag_to_delete = call.data.split('_')[1]
-    logger.info("121212")
     user_tags = db.get_user_tags(call.from_user.id)
     if tag_to_delete in user_tags:
         user_tags.remove(tag_to_delete)
