@@ -1,3 +1,21 @@
+langchain
+langchain-community
+langchain-openai
+langchain-experimental
+neo4j
+wikipedia-api
+tiktoken
+yfiles_jupyter_graphs
+yandex-chain
+google-colab
+json-repair
+asyncio
+tabulate
+git+https://github.com/stanford-futuredata/ColBERT.git@main
+torch==2.1.2
+faiss-gpu==1.7.2
+langdetect==1.0.9
+huggingface-hub
 fastapi
 pydantic
 uvicorn
@@ -10,4 +28,4 @@ langchain-chroma
 pymupdf
 ocrmypdf
 spacy==3.7.0
-
+git+https://github.com/Athe-kunal/dspy.git@main
