@@ -19,6 +19,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.utils import get_from_dict_or_env
 from langchain_core.vectorstores import VectorStore
+from langchain_community.vectorstores import Neo4jVector
 
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.vectorstores.utils import DistanceStrategy
@@ -80,7 +81,7 @@ DEFAULT_INDEX_TYPE = IndexType.NODE
 
 
 class MyNeo4jVect(Neo4jVector):
-    
+
     def __init__(
         self,
         embedding: Embeddings,
@@ -111,7 +112,7 @@ class MyNeo4jVect(Neo4jVector):
                 "Could not import neo4j python package. "
                 "Please install it with `pip install neo4j`."
             )
-        self.tags=tags
+        self.tags = tags
 
         # Allow only cosine and euclidean distance strategies
         if distance_strategy not in [
@@ -204,7 +205,7 @@ class MyNeo4jVect(Neo4jVector):
                 self.query(f"DROP INDEX {self.index_name}")
             except DatabaseError:  # Index didn't exist yet
                 pass
-    
+
     @classmethod
     def from_existing_graph(
         cls: Type[Neo4jVector],
@@ -268,7 +269,7 @@ class MyNeo4jVect(Neo4jVector):
             retrieval_query=retrieval_query,
             node_label=node_label,
             embedding_node_property=embedding_node_property,
-            tags = tags,
+            tags=tags,
             **kwargs,
         )
 
@@ -338,11 +339,11 @@ class MyNeo4jVect(Neo4jVector):
             }
 
             print("UNWIND $data AS row "
-                f"MATCH (n:`{node_label}`) "
-                "WHERE elementId(n) = row.id "
-                f"CALL db.create.setVectorProperty(n, "
-                f"'{embedding_node_property}', row.embedding) "
-                "YIELD node RETURN count(*)")
+                  f"MATCH (n:`{node_label}`) "
+                  "WHERE elementId(n) = row.id "
+                  f"CALL db.create.setVectorProperty(n, "
+                  f"'{embedding_node_property}', row.embedding) "
+                  "YIELD node RETURN count(*)")
 
             store.query(
                 "UNWIND $data AS row "
@@ -358,7 +359,7 @@ class MyNeo4jVect(Neo4jVector):
             if len(data) < 1000:
                 break
         return store
-    
+
     def similarity_search_with_score_by_vector(
         self,
         embedding: List[float],
@@ -479,7 +480,7 @@ class MyNeo4jVect(Neo4jVector):
             for result in results
         ]
         return docs
-    
+
     def get_search_index_query(
         self, search_type: SearchType, index_type: IndexType = DEFAULT_INDEX_TYPE
     ) -> str:
@@ -526,7 +527,8 @@ class MyNeo4jVect(Neo4jVector):
                 "CALL db.index.vector.queryRelationships($index, $k, $embedding) "
                 "YIELD relationship, score "
             )
-        
+
+
 def check_if_not_null(props: List[str], values: List[Any]) -> None:
     """Check if the values are not None or empty string"""
     for prop, value in zip(props, values):

@@ -98,61 +98,64 @@ examples = [
     }
 ]
 
-system_prompt = (
-    "# Knowledge Graph Instructions for GPT-4\n"
-    "## 1. Overview\n"
-    "You are a top-tier algorithm designed for extracting information in structured "
-    "formats to build a knowledge graph.\n"
-    "Try to capture as much information from the text as possible without "
-    "sacrifing accuracy. Do not add any information that is not explicitly "
-    "mentioned in the text\n"
-    "- **Nodes** represent entities and concepts.\n"
-    "- The aim is to achieve simplicity and clarity in the knowledge graph, making it\n"
-    "accessible for a vast audience.\n"
-    "## 2. Labeling Nodes\n"
-    "- **Consistency**: Ensure you use available types for node labels.\n"
-    "Ensure you use basic or elementary types for node labels.\n"
-     f"Use next tags as main nodes labels: {' ,'.join(tags)}.\n"
-    "- For example, when you identify an entity representing a person, "
-    "always label it as **'person'**. Avoid using more specific terms "
-    "like 'mathematician' or 'scientist'"
-    "  - **Node IDs**: Never utilize integers as node IDs. Node IDs should be "
-    "names or human-readable identifiers found in the text.\n"
-    "- **Relationships** represent connections between entities or concepts.\n"
-    "Ensure consistency and generality in relationship types when constructing "
-    "knowledge graphs. Instead of using specific and momentary types "
-    "such as 'BECAME_PROFESSOR', use more general and timeless relationship types "
-    "like 'PROFESSOR'. Make sure to use general and timeless relationship types!\n"
-    "## 3. Coreference Resolution\n"
-    "- **Maintain Entity Consistency**: When extracting entities, it's vital to "
-    "ensure consistency.\n"
-    'If an entity, such as "John Doe", is mentioned multiple times in the text '
-    'but is referred to by different names or pronouns (e.g., "Joe", "he"),'
-    "always use the most complete identifier for that entity throughout the "
-    'knowledge graph. In this example, use "John Doe" as the entity ID.\n'
-    "Remember, the knowledge graph should be coherent and easily understandable, "
-    "so maintaining consistency in entity references is crucial.\n"
-    "## 4. Strict Compliance\n"
-    "Adhere to the rules strictly. Non-compliance will result in termination."
-)
 
-default_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            system_prompt,
-        ),
-        (
-            "human",
+def create_sys_promt(tags: List[str]):
+    system_prompt = (
+        "# Knowledge Graph Instructions for GPT-4\n"
+        "## 1. Overview\n"
+        "You are a top-tier algorithm designed for extracting information in structured "
+        "formats to build a knowledge graph.\n"
+        "Try to capture as much information from the text as possible without "
+        "sacrifing accuracy. Do not add any information that is not explicitly "
+        "mentioned in the text\n"
+        "- **Nodes** represent entities and concepts.\n"
+        "- The aim is to achieve simplicity and clarity in the knowledge graph, making it\n"
+        "accessible for a vast audience.\n"
+        "## 2. Labeling Nodes\n"
+        "- **Consistency**: Ensure you use available types for node labels.\n"
+        "Ensure you use basic or elementary types for node labels.\n"
+        f"Use next tags as main nodes labels: {' ,'.join(tags)}.\n"
+        "- For example, when you identify an entity representing a person, "
+        "always label it as **'person'**. Avoid using more specific terms "
+        "like 'mathematician' or 'scientist'"
+        "  - **Node IDs**: Never utilize integers as node IDs. Node IDs should be "
+        "names or human-readable identifiers found in the text.\n"
+        "- **Relationships** represent connections between entities or concepts.\n"
+        "Ensure consistency and generality in relationship types when constructing "
+        "knowledge graphs. Instead of using specific and momentary types "
+        "such as 'BECAME_PROFESSOR', use more general and timeless relationship types "
+        "like 'PROFESSOR'. Make sure to use general and timeless relationship types!\n"
+        "## 3. Coreference Resolution\n"
+        "- **Maintain Entity Consistency**: When extracting entities, it's vital to "
+        "ensure consistency.\n"
+        'If an entity, such as "John Doe", is mentioned multiple times in the text '
+        'but is referred to by different names or pronouns (e.g., "Joe", "he"),'
+        "always use the most complete identifier for that entity throughout the "
+        'knowledge graph. In this example, use "John Doe" as the entity ID.\n'
+        "Remember, the knowledge graph should be coherent and easily understandable, "
+        "so maintaining consistency in entity references is crucial.\n"
+        "## 4. Strict Compliance\n"
+        "Adhere to the rules strictly. Non-compliance will result in termination."
+    )
+
+    default_prompt = ChatPromptTemplate.from_messages(
+        [
             (
-                "Tip: Make sure to answer in the correct format and do "
-                "not include any explanations. "
-                "Use the given format to extract information from the "
-                "following input: {input}"
+                "system",
+                system_prompt,
             ),
-        ),
-    ]
-)
+            (
+                "human",
+                (
+                    "Tip: Make sure to answer in the correct format and do "
+                    "not include any explanations. "
+                    "Use the given format to extract information from the "
+                    "following input: {input}"
+                ),
+            ),
+        ]
+    )
+    return default_prompt
 
 
 def _get_additional_info(input_type: str) -> str:
@@ -206,7 +209,6 @@ def optional_enum_field(
         return Field(..., description=description + additional_info, **field_kwargs)
 
 
-
 class _Graph(BaseModel):
     nodes: Optional[List]
     relationships: Optional[List]
@@ -232,7 +234,6 @@ class UnstructuredRelation(BaseModel):
     tail_type: str = Field(
         description="type of the extracted tail entity like Person, Company, etc"
     )
-
 
 
 def create_unstructured_prompt(
@@ -308,7 +309,6 @@ For the following text, extract entities and relations as in the provided exampl
         [system_message, human_message_prompt]
     )
     return chat_prompt
-
 
 
 def create_simple_model(
@@ -400,7 +400,6 @@ def create_simple_model(
     return DynamicGraph
 
 
-
 def map_to_base_node(node: Any) -> Node:
     """Map the SimpleNode to the base Node."""
     properties = {}
@@ -410,13 +409,11 @@ def map_to_base_node(node: Any) -> Node:
     return Node(id=node.id, type=node.type, properties=properties)
 
 
-
 def map_to_base_relationship(rel: Any) -> Relationship:
     """Map the SimpleRelationship to the base Relationship."""
     source = Node(id=rel.source_node_id, type=rel.source_node_type)
     target = Node(id=rel.target_node_id, type=rel.target_node_type)
     return Relationship(source=source, target=target, type=rel.type)
-
 
 
 def _parse_and_clean_json(
@@ -511,7 +508,6 @@ def format_property_key(s: str) -> str:
     return "".join([first_word] + capitalized_words)
 
 
-
 def _convert_to_graph_document(
     raw_schema: Dict[Any, Any],
 ) -> Tuple[List[Node], List[Relationship]]:
@@ -590,7 +586,7 @@ class MYLLMGraphTransformer:
         llm: BaseLanguageModel,
         allowed_nodes: List[str] = [],
         allowed_relationships: List[str] = [],
-        prompt: Optional[ChatPromptTemplate] = None,
+        prompt: ChatPromptTemplate = "",
         strict_mode: bool = True,
         node_properties: Union[bool, List[str]] = False,
     ) -> None:
@@ -634,10 +630,9 @@ class MYLLMGraphTransformer:
                 allowed_nodes, allowed_relationships, node_properties, llm_type
             )
             structured_llm = llm.with_structured_output(schema, include_raw=True)
-            prompt = prompt or default_prompt
+            prompt = prompt
             print(prompt)
             self.chain = prompt | structured_llm
-
 
     def process_response(self, document: Document) -> GraphDocument:
         """
@@ -655,7 +650,7 @@ class MYLLMGraphTransformer:
             if not isinstance(raw_schema, str):
                 raw_schema = raw_schema.content
             parsed_json = self.json_repair.loads(raw_schema)
-            
+
             for rel in parsed_json:
                 print(rel)
                 # Nodes need to be deduplicated using a set
@@ -695,7 +690,6 @@ class MYLLMGraphTransformer:
 
         return GraphDocument(nodes=nodes, relationships=relationships, source=document)
 
-
     def convert_to_graph_documents(
         self, documents: Sequence[Document]
     ) -> List[GraphDocument]:
@@ -709,7 +703,6 @@ class MYLLMGraphTransformer:
             Sequence[GraphDocument]: The transformed documents as graphs.
         """
         return [self.process_response(document) for document in documents]
-
 
     async def aprocess_response(self, document: Document) -> GraphDocument:
         """
@@ -742,7 +735,6 @@ class MYLLMGraphTransformer:
                 ]
 
         return GraphDocument(nodes=nodes, relationships=relationships, source=document)
-
 
     async def aconvert_to_graph_documents(
         self, documents: Sequence[Document]

@@ -1,6 +1,4 @@
 import dspy
-import numpy as np
-import tabulate
 from colbert.infra.config import ColBERTConfig
 
 # Конфигурация ColBERT
