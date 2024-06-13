@@ -29,10 +29,14 @@ logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:     [%(asctime)s] %(message)s')
 
 
+global saving_info
+saving_info = False
+
 class MyStates(StatesGroup):
     getting_info = State()
     answering_questions = State()
     adding_tags = State()
+    adding_info = State()
     deleting_tags = State()
     getting_weekly_news = State()
     getting_added_news = State()
@@ -46,10 +50,14 @@ def save_file(document, file_info):
 
 
 def gen_markup():
+    global saving_info
     markup = ReplyKeyboardMarkup(row_width=1)
     markup.add(KeyboardButton("Добавить теги"))
     markup.add(KeyboardButton("Удалить теги"))
-    markup.add(KeyboardButton("Добавить информацию"))
+    if saving_info:
+        markup.add(KeyboardButton("Остановить сохранение сообщений"))
+    else:
+        markup.add(KeyboardButton("Добавить информацию"))
     markup.add(KeyboardButton("Получить недельные новости"))
     markup.add(KeyboardButton("Дайджест по добавленной информации"))
     return markup
@@ -87,6 +95,7 @@ def page_handler(call):
 
 
 def handle_keyboard_callbacks(message) -> bool:
+    global saving_info
     if message.text.lower() == 'добавить теги':
         bot.set_state(message.from_user.id, MyStates.adding_tags, message.chat.id)
         tags = db.get_user_tags(message.from_user.id)
@@ -103,8 +112,9 @@ def handle_keyboard_callbacks(message) -> bool:
         bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
         return True
     if message.text.lower() == 'добавить информацию':
-        bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
-        bot.send_message(message.chat.id, "Какую информацию вы хотите добавить?")
+        saving_info = True
+        bot.send_message(message.chat.id, "Какую информацию вы хотите добавить?\nЧтобы перестать добавлять информацию, выберите вариант \"Остановить сохранение сообщений\"", reply_markup=gen_markup())
+        bot.set_state(message.from_user.id, MyStates.adding_info, message.chat.id)
         return True
     if message.text.lower() == 'получить недельные новости':
         handle_getting_weekly_news(message)
@@ -132,6 +142,21 @@ def handle_adding_tags(message):
     db.save_user_tags(message.from_user.id, current_tags)
     bot.send_message(message.chat.id, f"Теги добавлены: {', '.join(new_tags)}", reply_markup=gen_markup())
     bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
+
+
+@bot.message_handler(state=MyStates.adding_info, content_types=['text'])
+def handle_adding_info(message):
+    global saving_info
+    if message.text.lower() == 'остановить сохранение сообщений':
+        saving_info = False
+        bot.reply_to(message, "Сохранение сообщений отключено.", reply_markup=gen_markup())
+        bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
+    if saving_info:
+        logger.info(f"User {message.from_user.id}. Adding info.")
+        user_id = message.from_user.id
+        message_text = message.text
+        db.insert_message(user_id, message_text)
+        bot.reply_to(message, "Информация была сохранена в базу данных.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('delete_'))

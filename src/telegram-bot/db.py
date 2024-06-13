@@ -16,6 +16,14 @@ def init():
             tags TEXT
         )
     ''')
+    cursor.execute('''
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    message_text TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+''')
     conn.commit()
     conn.close()
 
@@ -27,6 +35,16 @@ def get_user_tags(user_id):
     result = cursor.fetchone()
     conn.close()
     return set(result[0].split(',')) if result else set()
+
+
+def insert_message(user_id, message_text):
+    conn = sqlite3.connect(USER_HISTORY_DB)
+    cursor = conn.cursor()
+    cursor.execute('''
+    INSERT INTO messages (user_id, message_text) VALUES (?, ?)
+    ''', (user_id, message_text))
+    conn.commit()
+    conn.close()
 
 
 def save_user_tags(user_id, tags):
