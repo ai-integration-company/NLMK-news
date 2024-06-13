@@ -47,11 +47,11 @@ def reranking(sine, k, question, colbert_reranker):
     sorted_documents = [item[0] for item in documents_with_scores][:k]
     return sorted_documents
 
-def retriever(graph, vector_index, colbert_reranker, tags: List[str], chain) -> str:
+def retriever(graph, vector_index, colbert_reranker, tags: List[str], chain, k_sine, k_rerank) -> str:
     question = "News by tags " + ", ".join(tags)
     structured_data = structured_retriever(graph, tags)
-    sine = vector_index.similarity_search(question, k=5)
-    sorted_documents = reranking(sine=sine, k=5, question=question, colbert_reranker=colbert_reranker)
+    sine = vector_index.similarity_search(question, k=k_sine)
+    sorted_documents = reranking(sine=sine, k=k_rerank, question=question, colbert_reranker=colbert_reranker)
     for el in sorted_documents:
         el.metadata['summary'] = chain.invoke({"text": el.page_content, "context": structured_data})
     return generate_news_digest(sorted_documents)
