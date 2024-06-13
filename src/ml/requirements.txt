@@ -3,10 +3,8 @@ langchain-community
 langchain-openai
 langchain-experimental
 neo4j
-wikipedia-api
 tiktoken
 yfiles_jupyter_graphs
-yandex-chain
 google-colab
 json-repair
 asyncio
@@ -21,5 +19,4 @@ pydantic
 uvicorn
 python-dotenv
 langchain_core
-yandex_chain
 git+https://github.com/Athe-kunal/dspy.git@main

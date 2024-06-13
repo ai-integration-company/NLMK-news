@@ -2,14 +2,14 @@ from utlis import get_text_chunks
 from models import colbert_reranker, MYLLMGraphTransformer, MyNeo4jVect, create_sys_promt, TagsRequest, TagsTextRequest
 from utlis import retriever
 from langchain_openai import ChatOpenAI
-from yandex_chain import YandexLLM
-from yandex_chain import YandexEmbeddings
 from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import TokenTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.schema.document import Document
+
+from langchain_openai import OpenAIEmbeddings
 
 from langchain_core.runnables import (
     RunnableParallel,
@@ -37,11 +37,8 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD")
 graph = Neo4jGraph(url=NEO4J_URI, username=NEO4J_USERNAME, password=NEO4J_PASSWORD)
 # gpt-4-0125-preview occasionally has issues
 
-embeddings = YandexEmbeddings(
-    folder_id=FOLDER_ID, api_key=API_KEY,
-)
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=OPENAI_API_KEY)
 
-llm = YandexLLM(folder_id=FOLDER_ID, api_key=API_KEY)
 
 
 app = FastAPI()
@@ -81,32 +78,32 @@ def question(tags: TagsRequest):
     promt = create_sys_promt(tags.tags)
     llmg = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125",
                       api_key=OPENAI_API_KEY)
-    llm_transformer = MYLLMGraphTransformer(llm=llmg, prompt=promt)
-    news = [
-        {'date_published': '2023-06-01', 'url': 'https://habr.com/ru/articles/780008/', 'source_name': 'habr'},
-        {'date_published': '2023-06-02',
-         'url': 'https://www.rbc.ru/sport/09/06/2024/6665b86f9a79472a6485f52a?from=newsfeed', 'source_name': 'rbc'},
-        {'date_published': '2023-06-03',
-         'url': 'https://www.reddit.com/r/OpenAI/comments/187fzdb/openai_api_free_alternative_or_does_openai_api/',
-         'source_name': 'reddit'}]
+    #llm_transformer = MYLLMGraphTransformer(llm=llmg, prompt=promt)
+    #news = [
+    #    {'date_published': '2023-06-01', 'url': 'https://habr.com/ru/articles/780008/', 'source_name': 'habr'},
+    #    {'date_published': '2023-06-02',
+    #     'url': 'https://www.rbc.ru/sport/09/06/2024/6665b86f9a79472a6485f52a?from=newsfeed', 'source_name': 'rbc'},
+    #    {'date_published': '2023-06-03',
+    #     'url': 'https://www.reddit.com/r/OpenAI/comments/187fzdb/openai_api_free_alternative_or_does_openai_api/',
+    #     'source_name': 'reddit'}]
 
-    docs = []
-    for i in news:
-        doc = WebBaseLoader(i['url']).load()
-
-        doc[0].metadata['date'] = i['date_published']
-        doc[0].metadata['news_name'] = i['source_name']
-        docs.append(doc[0])
-
-    text_splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=24)
-    documents = text_splitter.split_documents(docs[0:])
-    graph_documents = llm_transformer.convert_to_graph_documents(documents)
-
-    graph.add_graph_documents(
-        graph_documents,
-        baseEntityLabel=True,
-        include_source=True,
-    )
+    #docs = []
+    #for i in news:
+    #    doc = WebBaseLoader(i['url']).load()
+#
+#        doc[0].metadata['date'] = i['date_published']
+#        doc[0].metadata['news_name'] = i['source_name']
+#        docs.append(doc[0])
+#
+#    text_splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=24)
+#    documents = text_splitter.split_documents(docs[0:])
+#    graph_documents = llm_transformer.convert_to_graph_documents(documents)
+#
+#    graph.add_graph_documents(
+#        graph_documents,
+#        baseEntityLabel=True,
+#        include_source=True,
+#    )
 
     vector_index = MyNeo4jVect.from_existing_graph(
         embeddings,
@@ -136,7 +133,7 @@ def question(tags: TagsRequest):
             },
         )
         | prompt
-        | llm
+        | llmg
         | StrOutputParser()
     )
 
