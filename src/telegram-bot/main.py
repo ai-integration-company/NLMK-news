@@ -27,6 +27,81 @@ bot = TeleBot(API_TOKEN, state_storage=state_storage)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logging.basicConfig(format='%(levelname)s:     [%(asctime)s] %(message)s')
+default_tags = [
+    "Technologies",
+    "Innovations",
+    "Innovations",
+    "Trends",
+    "Digitalization",
+    "Automation",
+    "Digitaltransformation",
+    "Digitalsolutions",
+    "Digitaltwins",
+    "Digitaltwins",
+    "Ai",
+    "Iot",
+    "Internetofthings",
+    "Bigdata",
+    "Blockchain",
+    "Processmining",
+    "Cloudtechnologies",
+    "Quantumcomputing",
+    "Smartcontracts",
+    "Robotics",
+    "Vr", "Ar", "Mr",
+    "Virtualandaugmentedreality",
+    "Generative",
+    "Recognition",
+    "Artificialintelligence",
+    "Machinelearning",
+    "Deeplearning",
+    "Neuralnetworks",
+    "Computervision",
+    "Naturallanguageprocessing",
+    "Reinforcementlearning",
+    "Lowcode",
+    "Nocode",
+    "Metallurgical",
+    "Steel",
+    "Llm",
+    "Ml",
+    "Chatgpt",
+    "It",
+    "Cybersecurity",
+    "Startups",
+    "Startups",
+    "Yandexgpt",
+    "Llama",
+    "Gpt",
+    "Bert",
+    "Openai",
+    "Dalle",
+    "Transformermodels",
+    "Generativeadversarialnetworks",
+    "Deepfake",
+    "Machinevision",
+    "Texttoimage",
+    "Voicetotext",
+    "Datavisualization",
+    "Supplychainmanagement",
+    "Procurement",
+    "Supercomputers",
+    "Devops",
+    "Fintech",
+    "Token",
+    "Microservices",
+    "Kubernetes",
+    "Api",
+    "Digitalfootprint",
+    "Digitalidentification",
+    "Intelligentdataanalysis",
+    "Advancedanalytics",
+    "Severstal",
+    "Evraz",
+    "Mmk",
+    "Omk",
+    "Nipponsteel"
+]
 
 
 class MyStates(StatesGroup):
@@ -49,9 +124,9 @@ def gen_markup():
     markup = ReplyKeyboardMarkup(row_width=1)
     markup.add(KeyboardButton("Добавить теги"))
     markup.add(KeyboardButton("Удалить теги"))
-    markup.add(KeyboardButton("Добавить информацию"))
+    # markup.add(KeyboardButton("Добавить информацию"))
     markup.add(KeyboardButton("Получить недельные новости"))
-    markup.add(KeyboardButton("Дайджест по добавленной информации"))
+    # markup.add(KeyboardButton("Дайджест по добавленной информации"))
     return markup
 
 
@@ -108,6 +183,7 @@ def handle_keyboard_callbacks(message) -> bool:
         return True
     if message.text.lower() == 'получить недельные новости':
         handle_getting_weekly_news(message)
+        bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
         return True
     if message.text.lower() == 'дайджест по добавленной информации':
         handle_getting_added_news(message)
@@ -154,7 +230,7 @@ def handle_getting_weekly_news(message):
     response = requests.post("http://ml:3000/weekly_news", json={"tags": list(tags)})
     if response.status_code == 200:
         bot.send_message(message.chat.id,
-                         "Вот ваши новости за неделю:",
+                         f"Ваши новости за неделю:\n {response.json()['answer']}",
                          reply_markup=gen_markup())
     else:
         bot.send_message(message.chat.id,
@@ -180,6 +256,9 @@ def handle_getting_added_news(message):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     logger.info(f"User {message.from_user.id}. Starting the bot.")
+    tags = db.get_user_tags(message.from_user.id)
+    if not tags:
+        db.save_user_tags(message.from_user.id, set(default_tags))
     bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
     bot.send_message(message.chat.id,
                      "Здравствуйте! Выберите режим, в котором вы хотите работать с помощью кнопки.",

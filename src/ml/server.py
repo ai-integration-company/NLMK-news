@@ -19,7 +19,7 @@ from langchain_core.runnables import (
 import os
 from dotenv import load_dotenv
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI
 
 from langchain_community.graphs import Neo4jGraph
 
@@ -38,7 +38,6 @@ graph = Neo4jGraph(url=NEO4J_URI, username=NEO4J_USERNAME, password=NEO4J_PASSWO
 # gpt-4-0125-preview occasionally has issues
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small", api_key=OPENAI_API_KEY)
-
 
 
 app = FastAPI()
@@ -78,8 +77,8 @@ def question(tags: TagsRequest):
     promt = create_sys_promt(tags.tags)
     llmg = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125",
                       api_key=OPENAI_API_KEY)
-    #llm_transformer = MYLLMGraphTransformer(llm=llmg, prompt=promt)
-    #news = [
+    # llm_transformer = MYLLMGraphTransformer(llm=llmg, prompt=promt)
+    # news = [
     #    {'date_published': '2023-06-01', 'url': 'https://habr.com/ru/articles/780008/', 'source_name': 'habr'},
     #    {'date_published': '2023-06-02',
     #     'url': 'https://www.rbc.ru/sport/09/06/2024/6665b86f9a79472a6485f52a?from=newsfeed', 'source_name': 'rbc'},
@@ -87,8 +86,8 @@ def question(tags: TagsRequest):
     #     'url': 'https://www.reddit.com/r/OpenAI/comments/187fzdb/openai_api_free_alternative_or_does_openai_api/',
     #     'source_name': 'reddit'}]
 
-    #docs = []
-    #for i in news:
+    # docs = []
+    # for i in news:
     #    doc = WebBaseLoader(i['url']).load()
 #
 #        doc[0].metadata['date'] = i['date_published']
@@ -137,6 +136,6 @@ def question(tags: TagsRequest):
         | StrOutputParser()
     )
 
-    return retriever(
+    return {"answer": retriever(
         graph=graph, vector_index=vector_index, colbert_reranker=colbert_reranker, tags=tags.tags, chain=chain,
-        k_sine=30, k_rerank=10)
+        k_sine=30, k_rerank=10)}

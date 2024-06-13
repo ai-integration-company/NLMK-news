@@ -5,18 +5,13 @@ langchain-experimental
 neo4j
 tiktoken
 yfiles_jupyter_graphs
-google-colab
+
+# Additional packages from PyPI
 json-repair
-asyncio
-tabulate
-git+https://github.com/stanford-futuredata/ColBERT.git@main
 torch==2.1.2
 faiss-gpu==1.7.2
 langdetect==1.0.9
-huggingface-hub
-fastapi
-pydantic
-uvicorn
-python-dotenv
-langchain_core
+
+# Packages from GitHub
+git+https://github.com/stanford-futuredata/ColBERT.git@main
 git+https://github.com/Athe-kunal/dspy.git@main
