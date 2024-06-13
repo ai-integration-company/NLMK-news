@@ -6,7 +6,7 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import TokenTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 
 from langchain_openai import OpenAIEmbeddings
@@ -44,7 +44,7 @@ app = FastAPI()
 
 
 def get_text_chunks_langchain(text, date):
-    text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=40)
     docs = [
         Document(page_content=x, matadata={"date": date, "news_name": "User", "link": "Provided by user"})
         for x in text_splitter.split_text(text)]
@@ -94,7 +94,7 @@ def question(tags: TagsRequest):
 #        doc[0].metadata['news_name'] = i['source_name']
 #        docs.append(doc[0])
 #
-#    text_splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=24)
+#    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=24)
 #    documents = text_splitter.split_documents(docs[0:])
 #    graph_documents = llm_transformer.convert_to_graph_documents(documents)
 #
@@ -116,12 +116,12 @@ def question(tags: TagsRequest):
     graph.query(
         "CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]")
 
-    template = """You must summarize the news text based only on the following context. Dont write anything else instead of summary:
-    Structured data: {context}
+    template = """You must summarize the news depends on next structured data:
+        Structured data: {context}
 
-    Text: {text}
-    Write only small summary of news with just main key points. Your summury will be in news digest. Dont write anything instead of summary. 
-    Answer in Russian:"""
+        Text: {text}
+        Your summury will be in news digest. Dont write anything instead of summary.
+        Answer in Russian:"""
     prompt = ChatPromptTemplate.from_template(template)
 
     chain = (

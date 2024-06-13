@@ -312,20 +312,24 @@ class MyNeo4jVect(Neo4jVector):
         while True:
             where_clause = " OR ".join([f"nn:{tag}" for tag in tags])
             fetch_query = (
-                "MATCH (nn) "
+                " MATCH (nn) "
                 f"WHERE {where_clause} "
+                "WITH nn "
                 "OPTIONAL MATCH (nn)-[r1]-(connected1) "
                 "OPTIONAL MATCH (connected1)-[r2]-(connected2) "
+                "WITH nn, connected1, connected2 "
+                "LIMIT 6000 "
                 "WITH collect(nn) + collect(connected1) + collect(connected2) AS allNodes "
                 "UNWIND allNodes AS node "
                 "WITH DISTINCT node, allNodes "
                 f"MATCH (n:`{node_label}`) "
                 "WHERE n IN allNodes "
                 f"AND n.{embedding_node_property} IS null "
-                "AND any(k in $props WHERE n[k] IS NOT null) "
-                f"RETURN elementId(n) AS id, reduce(str='',"
+                "AND any(k IN $props WHERE n[k] IS NOT null) "
+                "RETURN elementId(n) AS id, reduce(str = '', "
                 "k IN $props | str + '\\n' + k + ':' + coalesce(n[k], '')) AS text "
-                "LIMIT 1000"
+                "LIMIT 6000"
+
             )
             print(fetch_query)
             data = store.query(fetch_query, params={"props": text_node_properties})
@@ -494,31 +498,31 @@ class MyNeo4jVect(Neo4jVector):
                 SearchType.HYBRID: (
                     "MATCH (nn) "
                     f"WHERE {where_clause} "
+                    "WITH nn LIMIT 100 "
                     "OPTIONAL MATCH (nn)-[r1]-(connected1) "
-                    "OPTIONAL MATCH (connected1)-[r2]-(connected2) "
-                    "WITH collect(nn) + collect(connected1) + collect(connected2) AS allNodes "
+                    "WITH nn, connected1 "
+                    "WITH collect(nn) + collect(connected1) AS allNodes "
                     "UNWIND allNodes AS nod "
                     "WITH DISTINCT nod, allNodes "
                     "CALL { "
-                    "WITH allNodes "
-                    "CALL db.index.vector.queryNodes($index, $k, $embedding) "
-                    "YIELD node, score "
-                    "WHERE node IN allNodes "
-                    "WITH collect({node:node, score:score}) AS nodes, max(score) AS max "
-                    "UNWIND nodes AS n "
-                    # We use 0 as min
-                    "RETURN n.node AS node, (n.score / max) AS score UNION "
-                    "WITH allNodes "
-                    "CALL db.index.fulltext.queryNodes($keyword_index, $query, "
-                    "{limit: $k}) YIELD node, score "
-                    "WHERE node IN allNodes "
-                    "WITH collect({node:node, score:score}) AS nodes, max(score) AS max "
-                    "UNWIND nodes AS n "
-                    # We use 0 as min
-                    "RETURN n.node AS node, (n.score / max) AS score "
+                    "  WITH allNodes "
+                    "  CALL db.index.vector.queryNodes($index, $k, $embedding) "
+                    "  YIELD node, score "
+                    "  WHERE node IN allNodes "
+                    "  WITH collect({node:node, score:score}) AS nodes, max(score) AS max "
+                    "  UNWIND nodes AS n "
+                    "  RETURN n.node AS node, (n.score / max) AS score "
+                    "  UNION "
+                    "  WITH allNodes "
+                    "  CALL db.index.fulltext.queryNodes($keyword_index, $query, {limit: $k}) "
+                    "  YIELD node, score "
+                    "  WHERE node IN allNodes "
+                    "  WITH collect({node:node, score:score}) AS nodes, max(score) AS max "
+                    "  UNWIND nodes AS n "
+                    "  RETURN n.node AS node, (n.score / max) AS score "
                     "} "
-                    # dedup
-                    "WITH node, max(score) AS score ORDER BY score DESC LIMIT $k "
+                    "WITH node, max(score) AS score "
+                    "ORDER BY score DESC LIMIT $k "
                 ),
             }
             return type_to_query_map[search_type]
