@@ -7,10 +7,8 @@ class NewsArticleDto(BaseModel):
     source_name: Optional[str] = None
     url: Optional[str] = None
     date_published: Optional[date] = None
-    date_downloaded: Optional[date] = None
 
 
-class NewsSource(BaseModel):
-    name:                Optional[str] = None
-    rss_urls:            List[str]     = []
-    headliner_page_urls: List[str]     = []
+class RSSSource(BaseModel):
+    source_name:                Optional[str] = None
+    rss_feeds:            List[str]     = []

@@ -6,27 +6,8 @@ services:
     container_name: scrapper_server
     ports:
       - 8888:80
-    depends_on:
-      - db
     networks:
       - app-network
-
-  db:
-    image: postgres:latest
-    container_name: postgres
-    environment:
-      POSTGRES_DB: "${POSTGRES_DB}"
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - app-network
-
-volumes:
-  pgdata:
 
 
 networks:
