@@ -165,7 +165,7 @@ def handle_keyboard_callbacks(message) -> bool:
     if message.text.lower() == 'добавить теги':
         bot.set_state(message.from_user.id, MyStates.adding_tags, message.chat.id)
         tags = db.get_user_tags(message.from_user.id)
-        bot.send_message(message.chat.id, f"Ваши текущие теги: {', '.join(tags)}\nВведите новые теги через запятую:")
+        bot.send_message(message.chat.id, f"Ваши текущие теги: {', '.join(tags)}\nВведите новые теги через запятую на английском языке одним словом и только ПЕРВОЙ большой буквой:")
         return True
     if message.text.lower() == 'удалить теги':
         bot.set_state(message.from_user.id, MyStates.deleting_tags, message.chat.id)
@@ -202,12 +202,22 @@ def handle_text_info(message):
 @bot.message_handler(state=MyStates.adding_tags, content_types=['text'])
 def handle_adding_tags(message):
     logger.info(f"User {message.from_user.id}. Adding tags.")
+    
+    def is_valid_tag(tag):
+        return tag.isalpha() and tag.istitle() and ' ' not in tag
+
     new_tags = {tag.strip() for tag in message.text.split(',')}
-    current_tags = db.get_user_tags(message.from_user.id)
-    current_tags.update(new_tags)
-    db.save_user_tags(message.from_user.id, current_tags)
-    bot.send_message(message.chat.id, f"Теги добавлены: {', '.join(new_tags)}", reply_markup=gen_markup())
-    bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
+    valid_tags = {tag for tag in new_tags if is_valid_tag(tag)}
+    invalid_tags = new_tags - valid_tags
+    
+    if invalid_tags:
+        bot.send_message(message.chat.id, f"Некорректные теги: {', '.join(invalid_tags)}. Пожалуйста, введите теги на английском языке, одним словом, с первой заглавной буквой.")
+    else:
+        current_tags = db.get_user_tags(message.from_user.id)
+        current_tags.update(valid_tags)
+        db.save_user_tags(message.from_user.id, current_tags)
+        bot.send_message(message.chat.id, f"Теги добавлены: {', '.join(valid_tags)}", reply_markup=gen_markup())
+        bot.set_state(message.from_user.id, MyStates.getting_info, message.chat.id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('delete_'))
@@ -227,11 +237,13 @@ def callback_delete_tag(call):
 def handle_getting_weekly_news(message):
     logger.info(f"User {message.from_user.id}. Getting weekly news.")
     tags = db.get_user_tags(message.from_user.id)
-    response = requests.post("http://ml:3000/weekly_news", json={"tags": list(tags)})
+    response = requests.post("http://ml:3000/weekly_news", json={"tags": list(tags)}, timeout=600)
     if response.status_code == 200:
-        bot.send_message(message.chat.id,
-                         f"Ваши новости за неделю:\n {response.json()['answer']}",
-                         reply_markup=gen_markup())
+        news = response.json()['answer']
+        bot.send_message(message.chat.id,"Новости за последнюю неделю:\n")
+        for new in news:
+            bot.send_message(message.chat.id,
+                            new)
     else:
         bot.send_message(message.chat.id,
                          "Произошла ошибка при получении новостей.",

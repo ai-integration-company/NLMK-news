@@ -33,14 +33,14 @@ def structured_retriever(graph, tags: List[str]) -> str:
 
 
 def generate_news_digest(news_items: List[Document]) -> str:
-    digest = ""
+    digest = []
     for el in news_items:
         news_name = el.metadata['news_name']
         news_link = el.metadata['source']
         summary = el.metadata['summary']
         date = el.metadata['date']
 
-        digest += f"{news_name} ({news_link}). {date}:\n{summary}\n\n"
+        digest.append(f"{news_name} ({news_link}). {date}:\n{summary}\n\n")
     return digest
 
 
@@ -58,5 +58,5 @@ def retriever(graph, vector_index, colbert_reranker, tags: List[str], chain, k_s
     sine = vector_index.similarity_search(question, k=k_sine)
     # sorted_documents = reranking(sine=sine, k=k_rerank, question=question, colbert_reranker=colbert_reranker)
     for el in sine:
-        el.metadata['summary'] = chain.invoke({"text": el.page_content, "context": structured_data})
+        el.metadata['summary'] = chain.invoke({"text": el.page_content, "context": structured_data, "title": el.metadata.get('title', None)})
     return generate_news_digest(sine)

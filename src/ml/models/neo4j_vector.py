@@ -20,6 +20,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.utils import get_from_dict_or_env
 from langchain_core.vectorstores import VectorStore
 from langchain_community.vectorstores import Neo4jVector
+from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
 
 from langchain_community.graphs import Neo4jGraph
 from langchain_community.vectorstores.utils import DistanceStrategy
@@ -112,7 +113,7 @@ class MyNeo4jVect(Neo4jVector):
                 "Could not import neo4j python package. "
                 "Please install it with `pip install neo4j`."
             )
-        self.tags = tags
+        self.tags=tags
 
         # Allow only cosine and euclidean distance strategies
         if distance_strategy not in [
@@ -258,9 +259,9 @@ class MyNeo4jVect(Neo4jVector):
                 + embedding_node_property
                 + "`: Null, id: Null, "
                 + ", ".join([f"`{prop}`: Null" for prop in text_node_properties])
-                + "} AS metadata, score"
+                + "} AS metadata, score LIMIT 1000"
             )
-        print(retrieval_query)
+        # print(retrieval_query)
         store = cls(
             embedding=embedding,
             index_name=index_name,
@@ -269,7 +270,7 @@ class MyNeo4jVect(Neo4jVector):
             retrieval_query=retrieval_query,
             node_label=node_label,
             embedding_node_property=embedding_node_property,
-            tags=tags,
+            tags = tags,
             **kwargs,
         )
 
@@ -309,7 +310,9 @@ class MyNeo4jVect(Neo4jVector):
                     )
 
         # Populate embeddings
-        while True:
+        g=0
+        while g <= 3:
+            g+=1
             where_clause = " OR ".join([f"nn:{tag}" for tag in tags])
             fetch_query = (
                 " MATCH (nn) "
@@ -318,7 +321,7 @@ class MyNeo4jVect(Neo4jVector):
                 "OPTIONAL MATCH (nn)-[r1]-(connected1) "
                 "OPTIONAL MATCH (connected1)-[r2]-(connected2) "
                 "WITH nn, connected1, connected2 "
-                "LIMIT 6000 "
+                "LIMIT 2000 "
                 "WITH collect(nn) + collect(connected1) + collect(connected2) AS allNodes "
                 "UNWIND allNodes AS node "
                 "WITH DISTINCT node, allNodes "
@@ -328,10 +331,9 @@ class MyNeo4jVect(Neo4jVector):
                 "AND any(k IN $props WHERE n[k] IS NOT null) "
                 "RETURN elementId(n) AS id, reduce(str = '', "
                 "k IN $props | str + '\\n' + k + ':' + coalesce(n[k], '')) AS text "
-                "LIMIT 6000"
+                "LIMIT 2000"
 
             )
-            print(fetch_query)
             data = store.query(fetch_query, params={"props": text_node_properties})
             text_embeddings = embedding.embed_documents([el["text"] for el in data])
 
@@ -342,23 +344,24 @@ class MyNeo4jVect(Neo4jVector):
                 ]
             }
 
-            print("UNWIND $data AS row "
-                  f"MATCH (n:`{node_label}`) "
-                  "WHERE elementId(n) = row.id "
-                  f"CALL db.create.setVectorProperty(n, "
-                  f"'{embedding_node_property}', row.embedding) "
-                  "YIELD node RETURN count(*)")
+            # print("UNWIND $data AS row "
+            #     f"MATCH (n:`{node_label}`) "
+            #     "WHERE elementId(n) = row.id "
+            #     f"CALL db.create.setVectorProperty(n, "
+            #     f"'{embedding_node_property}', row.embedding) "
+            #     "YIELD node RETURN count(*)")
 
             store.query(
                 "UNWIND $data AS row "
+                "WITH row "
                 f"MATCH (n:`{node_label}`) "
                 "WHERE elementId(n) = row.id "
                 f"CALL db.create.setVectorProperty(n, "
                 f"'{embedding_node_property}', row.embedding) "
-                "YIELD node RETURN count(*)",
+                "YIELD node "
+                "RETURN count(*)",
                 params=params,
             )
-            print(data)
             # If embedding calculation should be stopped
             if len(data) < 1000:
                 break
@@ -444,6 +447,7 @@ class MyNeo4jVect(Neo4jVector):
         )
 
         read_query = index_query + retrieval_query
+        # print(read_query)
         parameters = {
             "index": self.index_name,
             "k": k,
@@ -453,6 +457,7 @@ class MyNeo4jVect(Neo4jVector):
             **params,
             **filter_params,
         }
+
 
         results = self.query(read_query, params=parameters)
 
@@ -531,7 +536,6 @@ class MyNeo4jVect(Neo4jVector):
                 "CALL db.index.vector.queryRelationships($index, $k, $embedding) "
                 "YIELD relationship, score "
             )
-
 
 def check_if_not_null(props: List[str], values: List[Any]) -> None:
     """Check if the values are not None or empty string"""

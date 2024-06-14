@@ -101,42 +101,47 @@ examples = [
 
 def create_sys_promt(tags: List[str]):
     system_prompt = (
-        "# Knowledge Graph Instructions for GPT-4\n"
-        "## 1. Overview\n"
-        "You are a top-tier algorithm designed for extracting information in structured "
-        "formats to build a knowledge graph.\n"
-        "Try to capture as much information from the text as possible without "
-        "sacrifing accuracy. Do not add any information that is not explicitly "
-        "mentioned in the text\n"
-        "- **Nodes** represent entities and concepts.\n"
-        "- The aim is to achieve simplicity and clarity in the knowledge graph, making it\n"
-        "accessible for a vast audience.\n"
-        "## 2. Labeling Nodes\n"
-        "- **Consistency**: Ensure you use available types for node labels.\n"
-        "Ensure you use basic or elementary types for node labels.\n"
-        f"Use next tags as main nodes labels: {' ,'.join(tags)}.\n"
-        "- For example, when you identify an entity representing a person, "
-        "always label it as **'person'**. Avoid using more specific terms "
-        "like 'mathematician' or 'scientist'"
-        "  - **Node IDs**: Never utilize integers as node IDs. Node IDs should be "
-        "names or human-readable identifiers found in the text.\n"
-        "- **Relationships** represent connections between entities or concepts.\n"
-        "Ensure consistency and generality in relationship types when constructing "
-        "knowledge graphs. Instead of using specific and momentary types "
-        "such as 'BECAME_PROFESSOR', use more general and timeless relationship types "
-        "like 'PROFESSOR'. Make sure to use general and timeless relationship types!\n"
-        "## 3. Coreference Resolution\n"
-        "- **Maintain Entity Consistency**: When extracting entities, it's vital to "
-        "ensure consistency.\n"
-        'If an entity, such as "John Doe", is mentioned multiple times in the text '
-        'but is referred to by different names or pronouns (e.g., "Joe", "he"),'
-        "always use the most complete identifier for that entity throughout the "
-        'knowledge graph. In this example, use "John Doe" as the entity ID.\n'
-        "Remember, the knowledge graph should be coherent and easily understandable, "
-        "so maintaining consistency in entity references is crucial.\n"
-        "## 4. Strict Compliance\n"
-        "Adhere to the rules strictly. Non-compliance will result in termination."
-    )
+    "# Knowledge Graph Instructions for GPT-4\n"
+    "## 1. Overview\n"
+    "You are a top-tier algorithm designed for extracting information in structured "
+    "formats to build a knowledge graph.\n"
+    "Try to capture as much information from the text as possible without "
+    "sacrificing accuracy. Do not add any information that is not explicitly "
+    "mentioned in the text\n"
+    "- **Nodes** represent entities and concepts.\n"
+    "- The aim is to achieve simplicity and clarity in the knowledge graph, making it\n"
+    "accessible for a vast audience.\n"
+    "## 2. Labeling Nodes\n"
+    "- **Consistency**: Ensure you use available types for node labels.\n"
+    "Ensure you use basic or elementary types for node labels.\n"
+    f"Use next tags as main nodes labels: {' ,'.join(tags)}.\n"
+    "- For example, when you identify an entity representing a person, "
+    "always label it as **'person'**. Avoid using more specific terms "
+    "like 'mathematician' or 'scientist'\n"
+    "  - **Node IDs**: Never utilize integers as node IDs. Node IDs should be "
+    "names or human-readable identifiers found in the text.\n"
+    "- **Relationships** represent connections between entities or concepts.\n"
+    "Ensure consistency and generality in relationship types when constructing "
+    "knowledge graphs. Instead of using specific and momentary types "
+    "such as 'BECAME_PROFESSOR', use more general and timeless relationship types "
+    "like 'PROFESSOR'. Make sure to use general and timeless relationship types!\n"
+    "## 3. Coreference Resolution\n"
+    "- **Maintain Entity Consistency**: When extracting entities, it's vital to "
+    "ensure consistency.\n"
+    'If an entity, such as "John Doe", is mentioned multiple times in the text '
+    'but is referred to by different names or pronouns (e.g., "Joe", "he"),'
+    "always use the most complete identifier for that entity throughout the "
+    'knowledge graph. In this example, use "John Doe" as the entity ID.\n'
+    "Remember, the knowledge graph should be coherent and easily understandable, "
+    "so maintaining consistency in entity references is crucial.\n"
+    "## 4. Relevance and Contextual Connections\n"
+    "- **Relevance**: Only extract entities that are contextually relevant to the main topic of the text.\n"
+    "- **Contextual Connections**: Ensure that extracted entities and concepts are contextually connected. DO NOT INCLUDE ISOLATED OR UNRELATED ENTITIES.\n"
+    "For example, if the text is about a scientific discovery, include entities like scientists involved, the discovery itself, and relevant institutions, but exclude unrelated personal information about the scientists.\n"
+    "## 5. Strict Compliance\n"
+    "Adhere to the rules strictly. Non-compliance will result in termination."
+)
+
 
     default_prompt = ChatPromptTemplate.from_messages(
         [
@@ -279,7 +284,7 @@ def create_unstructured_prompt(
     parser = JsonOutputParser(pydantic_object=UnstructuredRelation)
 
     human_prompt = PromptTemplate(
-        template="""Based on the following example, extract entities and 
+        template="""Based on the following example, extract entities and
 relations from the provided text.\n\n
 Use the following entity types, don't use other entity that is not defined below:
 # ENTITY TYPES:
