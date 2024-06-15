@@ -8,6 +8,8 @@ yfiles_jupyter_graphs
 fastapi
 uvicorn
 pydantic
+yandex_chain
+BeautifulSoup4
 
 # # Additional packages from PyPI
 # json-repair
