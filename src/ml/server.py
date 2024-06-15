@@ -7,6 +7,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
+from yandex_chain import YandexLLM
+
 
 from langchain_openai import OpenAIEmbeddings
 
@@ -41,6 +43,9 @@ llmg = ChatOpenAI(temperature=0, model_name="gpt-4o",
                       api_key=OPENAI_API_KEY)
 app = FastAPI()
 
+llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125",
+                      api_key=OPENAI_API_KEY)
+
 
 def get_text_chunks_langchain(text, date):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=40)
@@ -72,25 +77,23 @@ def question(tags: TagsRequest):
     graph.query(
         "CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]")
 
-    template = """You must summarize the news depends on next structured data:
-    Structured data: {context}
+    template = """You must summarize the news:
 
     Title: {title}
     Text: {text}
-    Your summury will be in news digest. Dont write anything instead of summary. Dont write any entry words, just summary.
+    Your summury will be in news digest. Dont write anything instead of summary. Dont write any entry words just summary.
     Answer in Russian:"""
     prompt = ChatPromptTemplate.from_template(template)
 
     chain = (
         RunnableParallel(
             {
-                "context": RunnablePassthrough(),
                 "text": RunnablePassthrough(),
                 'title': RunnablePassthrough(),
             }
         )
         | prompt
-        | llmg
+        | llm
         | StrOutputParser()
     )
 

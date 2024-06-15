@@ -1,8 +1,22 @@
 from langchain_core.documents import Document
 import json
 from typing import List
+import logging
+from langchain.document_loaders import WebBaseLoader
 
 
+logging.basicConfig(
+    filename='app.log',     
+    filemode='a',           
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG     
+)
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG
+)
+logger = logging.getLogger('my_logger')
 def generate_full_text_query(input: str) -> str:
     words = [el for el in input.split() if el]
     full_text_query = " AND ".join([f"{word}~2" for word in words])
@@ -56,7 +70,10 @@ def retriever(graph, vector_index, colbert_reranker, tags: List[str], chain, k_s
     question = "News by tags " + ", ".join(tags)
     structured_data = structured_retriever(graph, tags)
     sine = vector_index.similarity_search(question, k=k_sine)
+    logger.info(f"{len(structured_data)}")
     # sorted_documents = reranking(sine=sine, k=k_rerank, question=question, colbert_reranker=colbert_reranker)
     for el in sine:
-        el.metadata['summary'] = chain.invoke({"text": el.page_content, "context": structured_data, "title": el.metadata.get('title', None)})
+        text = WebBaseLoader(el.metadata['source']).load().page_content
+        el.metadata['summary'] = chain.invoke({"text": text[:10000], "title": el.metadata.get('title', None)})
+        logger.info(f"{len(el.page_content)}")
     return generate_news_digest(sine)
