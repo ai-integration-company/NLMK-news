@@ -244,6 +244,8 @@ def handle_getting_weekly_news(message):
         for new in news:
             bot.send_message(message.chat.id,
                             new)
+        bot.send_message(message.chat.id,"Новости закончились. Спасибо, что используете меня!",
+                         reply_markup=gen_markup())
     else:
         bot.send_message(message.chat.id,
                          "Произошла ошибка при получении новостей.",

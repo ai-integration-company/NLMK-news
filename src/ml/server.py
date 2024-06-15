@@ -46,7 +46,32 @@ app = FastAPI()
 llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125",
                       api_key=OPENAI_API_KEY)
 
+import time
 
+def create_vector_index_with_retry(embeddings, tags, max_retries=1, delay=1):
+    attempt = 0
+    while attempt <= max_retries:
+        try:
+            vector_index = MyNeo4jVect.from_existing_graph(
+                embeddings,
+                search_type="hybrid",
+                node_label="Document",
+                text_node_properties=["text"],
+                embedding_node_property="embedding",
+                url=NEO4J_URI,
+                username=NEO4J_USERNAME,
+                password=NEO4J_PASSWORD,
+                tags=tags.tags,
+            )
+            return vector_index
+        except Exception as e:
+            print(f"Attempt {attempt+1} failed: {e}")
+            if attempt < max_retries:
+                time.sleep(delay)
+                attempt += 1
+            else:
+                raise
+        
 def get_text_chunks_langchain(text, date):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=40)
     docs = [
@@ -65,24 +90,16 @@ def ping() -> str:
 @app.post("/weekly_news")
 def question(tags: TagsRequest):
     
-    vector_index = MyNeo4jVect.from_existing_graph(
-        embeddings,
-        search_type="hybrid",
-        node_label="Document",
-        text_node_properties=["text"],
-        embedding_node_property="embedding",
-        url=NEO4J_URI, username=NEO4J_USERNAME, password=NEO4J_PASSWORD, tags=tags.tags,
-    )
+    vector_index = create_vector_index_with_retry(embeddings=embeddings, tags=tags, max_retries=2) 
 
     graph.query(
         "CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]")
 
-    template = """You must summarize the news:
-
+    template = """
     Title: {title}
     Text: {text}
-    Your summury will be in news digest. Dont write anything instead of summary. Dont write any entry words just summary.
-    Answer in Russian:"""
+    Summarize the above article in RUSSIAN language. The summary should be less than 600 characters. It will be in news digest.\т
+    """
     prompt = ChatPromptTemplate.from_template(template)
 
     chain = (
@@ -93,10 +110,10 @@ def question(tags: TagsRequest):
             }
         )
         | prompt
-        | llm
+        | llmg
         | StrOutputParser()
     )
 
     return {"answer": retriever(
         graph=graph, vector_index=vector_index, colbert_reranker="", tags=tags.tags, chain=chain,
-        k_sine=5, k_rerank=10)}
+        k_sine=10, k_rerank=60)}

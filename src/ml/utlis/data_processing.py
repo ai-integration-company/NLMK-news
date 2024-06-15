@@ -5,17 +5,11 @@ import logging
 from langchain.document_loaders import WebBaseLoader
 
 
-logging.basicConfig(
-    filename='app.log',     
-    filemode='a',           
+logging.basicConfig(         
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG     
+    level=logging.INFO     
 )
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
-)
 logger = logging.getLogger('my_logger')
 def generate_full_text_query(input: str) -> str:
     words = [el for el in input.split() if el]
@@ -57,6 +51,17 @@ def generate_news_digest(news_items: List[Document]) -> str:
         digest.append(f"{news_name} ({news_link}). {date}:\n{summary}\n\n")
     return digest
 
+def remove_duplicates(elements):
+    seen_sources = set()  
+    unique_elements = [] 
+    
+    for el in elements:
+        source = el.metadata['source']  
+        if source not in seen_sources:
+            seen_sources.add(source)  
+            unique_elements.append(el)  
+    
+    return unique_elements
 
 def reranking(sine, k, question, colbert_reranker):
     documents_text = [el.page_content for el in sine]
@@ -68,12 +73,13 @@ def reranking(sine, k, question, colbert_reranker):
 
 def retriever(graph, vector_index, colbert_reranker, tags: List[str], chain, k_sine, k_rerank) -> str:
     question = "News by tags " + ", ".join(tags)
-    structured_data = structured_retriever(graph, tags)
-    sine = vector_index.similarity_search(question, k=k_sine)
-    logger.info(f"{len(structured_data)}")
+    #structured_data = structured_retriever(graph, tags)
+    sine = vector_index.similarity_search(question, k=k_rerank)
     # sorted_documents = reranking(sine=sine, k=k_rerank, question=question, colbert_reranker=colbert_reranker)
-    for el in sine:
-        text = WebBaseLoader(el.metadata['source']).load().page_content
-        el.metadata['summary'] = chain.invoke({"text": text[:10000], "title": el.metadata.get('title', None)})
+    sine=remove_duplicates(sine)
+    for el in sine[0:k_sine]:
+        text = WebBaseLoader(el.metadata['source']).load()[0].page_content
+        #logger.info(f"{text}")
+        el.metadata['summary'] = chain.invoke({"text": text, "title": el.metadata.get('title', None)})
         logger.info(f"{len(el.page_content)}")
-    return generate_news_digest(sine)
+    return generate_news_digest(sine[0:k_sine])
