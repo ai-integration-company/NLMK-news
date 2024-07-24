@@ -74,35 +74,8 @@ def ping() -> str:
 
 @app.post("/weekly_news")
 def question(tags: TagsRequest):
-    promt = create_sys_promt(tags.tags)
     llmg = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125",
                       api_key=OPENAI_API_KEY)
-    # llm_transformer = MYLLMGraphTransformer(llm=llmg, prompt=promt)
-    # news = [
-    #    {'date_published': '2023-06-01', 'url': 'https://habr.com/ru/articles/780008/', 'source_name': 'habr'},
-    #    {'date_published': '2023-06-02',
-    #     'url': 'https://www.rbc.ru/sport/09/06/2024/6665b86f9a79472a6485f52a?from=newsfeed', 'source_name': 'rbc'},
-    #    {'date_published': '2023-06-03',
-    #     'url': 'https://www.reddit.com/r/OpenAI/comments/187fzdb/openai_api_free_alternative_or_does_openai_api/',
-    #     'source_name': 'reddit'}]
-
-    # docs = []
-    # for i in news:
-    #    doc = WebBaseLoader(i['url']).load()
-#
-#        doc[0].metadata['date'] = i['date_published']
-#        doc[0].metadata['news_name'] = i['source_name']
-#        docs.append(doc[0])
-#
-#    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=24)
-#    documents = text_splitter.split_documents(docs[0:])
-#    graph_documents = llm_transformer.convert_to_graph_documents(documents)
-#
-#    graph.add_graph_documents(
-#        graph_documents,
-#        baseEntityLabel=True,
-#        include_source=True,
-#    )
 
     vector_index = MyNeo4jVect.from_existing_graph(
         embeddings,
@@ -138,4 +111,4 @@ def question(tags: TagsRequest):
 
     return {"answer": retriever(
         graph=graph, vector_index=vector_index, colbert_reranker=colbert_reranker, tags=tags.tags, chain=chain,
-        k_sine=30, k_rerank=10)}
+        k_sine=50, k_rerank=20)}
